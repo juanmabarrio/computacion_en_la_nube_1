@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,14 +25,25 @@ public class BucketsRestController {
 
     @GetMapping("/")
     public ResponseEntity<List<String>> getAllBuckets() {
-        List<String> bucketNames = listBuckets();
-        if (bucketNames == null) {
+        List<String> bucketNames = s3.listBuckets().stream().map(Bucket::getName).collect(Collectors.toList());
+        if ( bucketNames == null || bucketNames.size()==0 ) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         return new ResponseEntity<>(bucketNames, HttpStatus.OK);
     }
 
-    private List<String> listBuckets() {
-        return s3.listBuckets().stream().map(Bucket::getName).collect(Collectors.toList());
+    @GetMapping("/{bucket_name}")
+    public ResponseEntity<Bucket> getBucket(@PathVariable long bucketName) {
+        //List<String> bucketNames =
+        Bucket bucket = s3.listBuckets().stream()
+                .filter(b -> b.getName().equals(bucketName))
+                .findFirst()
+                .orElseThrow(EntityNotFoundException::new);
+        return new ResponseEntity<>(bucket, HttpStatus.OK);
     }
+
+
+
+
+
 }
