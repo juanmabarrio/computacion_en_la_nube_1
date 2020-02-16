@@ -4,12 +4,17 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 
+import javax.persistence.Entity;
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityNotFoundException;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.List;
 import java.util.Random;
@@ -63,17 +68,24 @@ public class BucketsRestController {
 
     @PostMapping("/{bucketName}/uploadObject")
     public ResponseEntity uploadObject(@PathVariable String bucketName, @RequestBody String fileContent) {
-        if (!s3.doesBucketExistV2(bucketName))
-            throw new EntityNotFoundException();
-        Bucket newBucket = s3.createBucket(bucketName);
-        PutObjectRequest por = new PutObjectRequest(
-                bucketName,
-                createRandomFileName(),
-                fileContent
-        );
-        por.setCannedAcl(CannedAccessControlList.PublicRead);
-        s3.putObject(por);
-        return new ResponseEntity(HttpStatus.OK);
+        try {
+            if (!s3.doesBucketExistV2(bucketName))
+                throw new EntityNotFoundException();
+            Bucket newBucket = s3.createBucket(bucketName);
+            ObjectMapper objectMapper = new ObjectMapper();
+            byte[] bytesToWrite = objectMapper.writeValueAsBytes(fileContent);
+            PutObjectRequest por = new PutObjectRequest(
+                    bucketName,
+                    createRandomFileName(),
+                    new ByteArrayInputStream(bytesToWrite),
+                    new ObjectMetadata()
+                    );
+            por.setCannedAcl(CannedAccessControlList.PublicRead);
+            s3.putObject(por);
+            return new ResponseEntity(HttpStatus.OK);
+        } catch (JsonProcessingException e) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
     }
 
 
