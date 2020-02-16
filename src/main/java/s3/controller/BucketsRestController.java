@@ -33,13 +33,13 @@ public class BucketsRestController {
     }
 
     @GetMapping("/{bucket_name}")
-    public ResponseEntity<Bucket> getBucket(@PathVariable long bucketName) {
+    public ResponseEntity<String> getBucket(@PathVariable long bucketName) {
         //List<String> bucketNames =
         Bucket bucket = s3.listBuckets().stream()
                 .filter(b -> b.getName().equals(bucketName))
                 .findFirst()
                 .orElseThrow(EntityNotFoundException::new);
-        return new ResponseEntity<>(bucket, HttpStatus.OK);
+        return new ResponseEntity<>(bucket.toString(), HttpStatus.OK);
     }
 
 
