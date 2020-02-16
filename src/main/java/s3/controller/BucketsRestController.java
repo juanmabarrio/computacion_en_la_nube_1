@@ -51,10 +51,6 @@ public class BucketsRestController {
         return new ResponseEntity<>(objects, HttpStatus.OK);
     }
 
-    private List<S3ObjectSummary> getS3ObjectSummaries(@PathVariable String bucketName) {
-        ListObjectsV2Result result = s3.listObjectsV2(bucketName);
-        return result.getObjectSummaries();
-    }
 
     @PostMapping("/{bucketName}")
     public ResponseEntity<Bucket> createBucket(@PathVariable String bucketName) {
@@ -81,6 +77,16 @@ public class BucketsRestController {
         }
     }
 
+    @PostMapping("/{sourceBucketName}/{sourceObjectName}/copy")
+    public ResponseEntity copyObject(@PathVariable String sourceBucketName,@PathVariable String sourceObjectName, @RequestParam String destinationBucketName) {
+        if (!s3.doesObjectExist(sourceBucketName,sourceObjectName))
+            return new ResponseEntity("object not found",HttpStatus.NOT_FOUND);
+        if (!s3.doesBucketExistV2(destinationBucketName)){
+            s3.createBucket(destinationBucketName);
+        }
+        s3.copyObject(sourceBucketName,sourceObjectName,destinationBucketName,sourceObjectName);
+        return new ResponseEntity(HttpStatus.OK);
+    }
     @DeleteMapping("/{bucketName}")
     public ResponseEntity deleteBucket(@PathVariable String bucketName) {
         if (!s3.doesBucketExistV2(bucketName))
@@ -97,6 +103,11 @@ public class BucketsRestController {
         return new ResponseEntity(HttpStatus.OK);
     }
 
+
+    private List<S3ObjectSummary> getS3ObjectSummaries(@PathVariable String bucketName) {
+        ListObjectsV2Result result = s3.listObjectsV2(bucketName);
+        return result.getObjectSummaries();
+    }
 
     private File convertMultiPartToFile(MultipartFile file) throws IOException {
         File convFile = new File(file.getOriginalFilename());
