@@ -53,9 +53,13 @@ public class BucketsRestController {
 //                .filter(b -> b.getName().equals(bucketName))
 //                .findFirst()
 //                .orElseThrow(EntityNotFoundException::new);
-        ListObjectsV2Result result = s3.listObjectsV2(bucketName);
-        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        List<S3ObjectSummary> objects = getS3ObjectSummaries(bucketName);
         return new ResponseEntity<>(objects, HttpStatus.OK);
+    }
+
+    private List<S3ObjectSummary> getS3ObjectSummaries(@PathVariable String bucketName) {
+        ListObjectsV2Result result = s3.listObjectsV2(bucketName);
+        return result.getObjectSummaries();
     }
 
     @PostMapping("/{bucketName}")
@@ -67,25 +71,28 @@ public class BucketsRestController {
     }
 
     @PostMapping("/{bucketName}/uploadObject")
-    public ResponseEntity uploadObject(@PathVariable String bucketName, @RequestBody String fileContent) {
-        try {
+    public ResponseEntity uploadObject(@PathVariable String bucketName, @RequestParam File file, @RequestParam Boolean isPublic) {
             if (!s3.doesBucketExistV2(bucketName))
                 throw new EntityNotFoundException();
             Bucket newBucket = s3.createBucket(bucketName);
-            ObjectMapper objectMapper = new ObjectMapper();
-            byte[] bytesToWrite = objectMapper.writeValueAsBytes(fileContent);
+//            ObjectMapper objectMapper = new ObjectMapper();
+//            byte[] bytesToWrite = objectMapper.writeValueAsBytes(fileContent);
             PutObjectRequest por = new PutObjectRequest(
                     bucketName,
-                    createRandomFileName(),
-                    new ByteArrayInputStream(bytesToWrite),
-                    new ObjectMetadata()
+                    file.getName(),
+                    file
                     );
             por.setCannedAcl(CannedAccessControlList.PublicRead);
             s3.putObject(por);
             return new ResponseEntity(HttpStatus.OK);
-        } catch (JsonProcessingException e) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
-        }
+    }
+
+    @DeleteMapping("/{bucketName}")
+    public ResponseEntity deleteBucket(@PathVariable String bucketName) {
+            if (!s3.doesBucketExistV2(bucketName))
+                throw new EntityNotFoundException();
+            s3.deleteBucket(bucketName);
+        return new ResponseEntity(HttpStatus.OK);
     }
 
 
