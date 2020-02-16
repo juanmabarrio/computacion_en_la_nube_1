@@ -8,11 +8,9 @@ import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import javax.persistence.EntityExistsException;
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,6 +52,15 @@ public class BucketsRestController {
         List<S3ObjectSummary> objects = result.getObjectSummaries();
         return new ResponseEntity<>(objects, HttpStatus.OK);
     }
+
+    @PostMapping("/{bucketName}")
+    public ResponseEntity<Bucket> createBucket(@PathVariable String bucketName) {
+        if (s3.doesBucketExistV2(bucketName))
+            throw new EntityExistsException();
+        Bucket newBucket = s3.createBucket(bucketName);
+        return new ResponseEntity<>(newBucket,HttpStatus.OK);
+    }
+
 
 
 
