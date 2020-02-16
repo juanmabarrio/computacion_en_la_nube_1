@@ -4,6 +4,8 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,23 +35,24 @@ public class BucketsRestController {
     }
 
     @GetMapping("/{bucketName}")
-    public ResponseEntity<String> getBucket(@PathVariable String bucketName) {
-        //List<String> bucketNames =
-        Bucket bucket = s3.listBuckets().stream()
-                .filter(b -> b.getName().equals(bucketName))
-                .findFirst()
-                .orElseThrow(EntityNotFoundException::new);
-        return new ResponseEntity<>(bucket.toString(), HttpStatus.OK);
-    }
-
-    @GetMapping("/{bucketName}/objects")
-    public ResponseEntity<Bucket> getObjects(@PathVariable String bucketName) {
-        //List<String> bucketNames =
+    public ResponseEntity<Bucket> getBucket(@PathVariable String bucketName) {
         Bucket bucket = s3.listBuckets().stream()
                 .filter(b -> b.getName().equals(bucketName))
                 .findFirst()
                 .orElseThrow(EntityNotFoundException::new);
         return new ResponseEntity<>(bucket, HttpStatus.OK);
+    }
+
+    @GetMapping("/{bucketName}/objects")
+    public ResponseEntity<List<S3ObjectSummary>> getObjects(@PathVariable String bucketName) {
+        //List<String> bucketNames =
+//        Bucket bucket = s3.listBuckets().stream()
+//                .filter(b -> b.getName().equals(bucketName))
+//                .findFirst()
+//                .orElseThrow(EntityNotFoundException::new);
+        ListObjectsV2Result result = s3.listObjectsV2(bucketName);
+        List<S3ObjectSummary> objects = result.getObjectSummaries();
+        return new ResponseEntity<>(objects, HttpStatus.OK);
     }
 
 
