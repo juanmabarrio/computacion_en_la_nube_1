@@ -32,7 +32,7 @@ public class BucketsRestController {
         return new ResponseEntity<>(bucketNames, HttpStatus.OK);
     }
 
-    @GetMapping("/{bucket_name}")
+    @GetMapping("/{bucketName}")
     public ResponseEntity<String> getBucket(@PathVariable String bucketName) {
         //List<String> bucketNames =
         Bucket bucket = s3.listBuckets().stream()
