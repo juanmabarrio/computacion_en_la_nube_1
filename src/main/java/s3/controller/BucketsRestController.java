@@ -1,5 +1,6 @@
 package s3.controller;
 
+import com.amazonaws.Response;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -57,6 +58,9 @@ public class BucketsRestController {
 
     @PostMapping("/{bucketName}")
     public ResponseEntity<Bucket> createBucket(@PathVariable String bucketName) {
+        if (s3.doesBucketExistV2(bucketName))
+            return new ResponseEntity("Bucket already exists", HttpStatus.CONFLICT);
+
         Bucket newBucket = s3.createBucket(bucketName);
         return new ResponseEntity<>(newBucket, HttpStatus.OK);
     }
@@ -65,7 +69,7 @@ public class BucketsRestController {
     public ResponseEntity uploadObject(@PathVariable String bucketName, @RequestParam MultipartFile file, @RequestParam Boolean isPublic) {
         try {
             if (!s3.doesBucketExistV2(bucketName))
-                throw new EntityNotFoundException();
+                return new ResponseEntity("Bucket not found!",HttpStatus.NOT_FOUND);
             PutObjectRequest por = new PutObjectRequest(bucketName,file.getOriginalFilename(),convertMultiPartToFile(file));
             if (isPublic) {
                 por.setCannedAcl(CannedAccessControlList.PublicRead);
@@ -79,12 +83,16 @@ public class BucketsRestController {
 
     @DeleteMapping("/{bucketName}")
     public ResponseEntity deleteBucket(@PathVariable String bucketName) {
+        if (!s3.doesBucketExistV2(bucketName))
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
         s3.deleteBucket(bucketName);
         return new ResponseEntity(HttpStatus.OK);
     }
 
     @DeleteMapping("/{bucketName}/{objectName}")
     public ResponseEntity deleteObject(@PathVariable String bucketName, @PathVariable String objectName) {
+        if (!(s3.doesObjectExist(bucketName,objectName)))
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
         s3.deleteObject(bucketName, objectName);
         return new ResponseEntity(HttpStatus.OK);
     }
