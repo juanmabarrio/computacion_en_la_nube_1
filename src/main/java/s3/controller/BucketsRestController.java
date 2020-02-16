@@ -46,11 +46,6 @@ public class BucketsRestController {
 
     @GetMapping("/{bucketName}/objects")
     public ResponseEntity<List<S3ObjectSummary>> getObjects(@PathVariable String bucketName) {
-        //List<String> bucketNames =
-//        Bucket bucket = s3.listBuckets().stream()
-//                .filter(b -> b.getName().equals(bucketName))
-//                .findFirst()
-//                .orElseThrow(EntityNotFoundException::new);
         List<S3ObjectSummary> objects = getS3ObjectSummaries(bucketName);
         return new ResponseEntity<>(objects, HttpStatus.OK);
     }
@@ -62,8 +57,6 @@ public class BucketsRestController {
 
     @PostMapping("/{bucketName}")
     public ResponseEntity<Bucket> createBucket(@PathVariable String bucketName) {
-        if (s3.doesBucketExistV2(bucketName))
-            throw new EntityExistsException();
         Bucket newBucket = s3.createBucket(bucketName);
         return new ResponseEntity<>(newBucket, HttpStatus.OK);
     }
@@ -73,13 +66,10 @@ public class BucketsRestController {
         try {
             if (!s3.doesBucketExistV2(bucketName))
                 throw new EntityNotFoundException();
-            Bucket newBucket = s3.createBucket(bucketName);
-            PutObjectRequest por = new PutObjectRequest(
-                    bucketName,
-                    file.getName(),
-                    convertMultiPartToFile(file)
-            );
-            por.setCannedAcl(CannedAccessControlList.PublicRead);
+            PutObjectRequest por = new PutObjectRequest(bucketName,file.getOriginalFilename(),convertMultiPartToFile(file));
+            if (isPublic) {
+                por.setCannedAcl(CannedAccessControlList.PublicRead);
+            }
             s3.putObject(por);
             return new ResponseEntity(HttpStatus.OK);
         } catch (IOException e) {
@@ -89,23 +79,16 @@ public class BucketsRestController {
 
     @DeleteMapping("/{bucketName}")
     public ResponseEntity deleteBucket(@PathVariable String bucketName) {
-        if (!s3.doesBucketExistV2(bucketName))
-            throw new EntityNotFoundException();
         s3.deleteBucket(bucketName);
         return new ResponseEntity(HttpStatus.OK);
     }
 
-
-    private String createRandomFileName() {
-        int leftLimit = 97; // letter 'a'
-        int rightLimit = 122; // letter 'z'
-        int targetStringLength = 10;
-        Random random = new Random();
-        return random.ints(leftLimit, rightLimit + 1)
-                .limit(targetStringLength)
-                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                .toString();
+    @DeleteMapping("/{bucketName}/{objectName}")
+    public ResponseEntity deleteObject(@PathVariable String bucketName, @PathVariable String objectName) {
+        s3.deleteObject(bucketName, objectName);
+        return new ResponseEntity(HttpStatus.OK);
     }
+
 
     private File convertMultiPartToFile(MultipartFile file) throws IOException {
         File convFile = new File(file.getOriginalFilename());
